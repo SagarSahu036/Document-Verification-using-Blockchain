@@ -3,6 +3,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const connectDb = require('./config/db');
 const documentRoutes = require('./routes/documentRoutes');
+const cors = require('./middlewares/cors')
 
 
 // Load environment variables from .env file
@@ -14,6 +15,7 @@ connectDb();
 // Initialize Express app
 const app = express();
 
+app.use(cors)
 // Middleware to parse JSON request bodies
 app.use(express.json());
 app.use('/api/documents', documentRoutes);
