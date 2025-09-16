@@ -8,7 +8,7 @@ const storage = multer.memoryStorage(); // We store file in memory buffer
 const upload = multer({ storage });
 
 router.post('/upload', upload.single('file'), uploadDocument);
-router.post('/varify', upload.single('file'), verifyDocument);
+router.post('/verify', upload.single('file'), verifyDocument);
 
 
 module.exports = router;

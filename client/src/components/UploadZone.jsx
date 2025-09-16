@@ -4,29 +4,76 @@ import React, { useState } from "react";
 
 function UploadZone() {
   const [file, setFile] = useState(null);
+  const [result, setResult] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleFileChange = async (e) => {
+  // Handle file selection via button
+  const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      uploadToBackend(selectedFile);
+    }
+  };
+
+  // Called when file hovers over box
+  const handleDragOver = (e) => {
+    e.preventDefault(); // Required to allow drop
+    setIsDragging(true);
+  };
+
+  // Called when file leaves the box
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  // Called when file is dropped
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) {
+      setFile(droppedFile);
+      uploadToBackend(droppedFile);
+    }
+  };
+
+  const uploadToBackend = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
     try {
-      const formdata = new FormData();
-      formdata.append("file", selectedFile);
       const response = await axios.post(
-        "http://localhost:5000/api/documents/varify",
-        formdata,
+        "http://localhost:5000/api/documents/verify",
+        formData,
         {
           headers: {
             "Content-Type": "multipart/form-data",
           },
         }
       );
-      console.log("respose", response);
+      console.log("respose", response.data);
+      setResult(response.data);
     } catch (error) {
+      setResult({
+        verified: false,
+        message: "Failed to verify document. Please try again.",
+      });
       console.log("error", error);
     }
   };
 
   return (
-    <div className="border-2 border-dashed border-blue-500 p-8 text-center rounded-lg bg-gray-800 max-w-2xl mx-auto">
+    <div
+      className={`border-2 border-dashed p-8 text-center rounded-lg bg-gray-800 transition-all duration-300 ${
+        isDragging
+          ? "border-green-500 bg-green-900/20 scale-105"
+          : "border-blue-500 hover:border-blue-400"
+      }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      style={{ width: "400px", margin: "0 auto" }}
+    >
       {/* Icon */}
       <div className="mb-4">
         <svg
