@@ -112,6 +112,20 @@ function UploadZone() {
           className="hidden"
         />
       </label>
+
+      {/* Show Result */}
+      {result && (
+        <div
+          className={`mt-6 p-4 rounded-lg text-center ${
+            result.verified
+              ? "bg-green-900 text-green-100"
+              : "bg-red-900 text-red-100"
+          }`}
+        >
+          <strong>{result.verified ? "✅ Verified" : "❌ Not Verified"}</strong>
+          <p className="text-sm mt-1">{result.message}</p>
+        </div>
+      )}
     </div>
   );
 }
