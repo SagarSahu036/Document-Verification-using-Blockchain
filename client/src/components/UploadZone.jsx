@@ -40,7 +40,7 @@ function UploadZone() {
 
   const uploadToBackend = async (file) => {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("document", file);
     try {
       const response = await axios.post(
         "http://localhost:5000/api/documents/verify",

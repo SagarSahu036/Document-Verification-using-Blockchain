@@ -4,21 +4,27 @@ const { contract } = require('../blockchain/ethers');
 
 const uploadDocument = async (req, res) => {
   try {
-
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
     const { originalname, mimetype, buffer } = req.file;
 
+    // Optional: Validate file type
+    if (!mimetype.startsWith('application/pdf')) {
+      return res.status(400).json({ message: 'Only PDF files are allowed' });
+    }
+
+    console.log(`📄 Uploading: ${originalname}, Type: ${mimetype}`);
+
     // Generate SHA-256 hash
     const fileHash = generateHash(buffer);
-    console.log("hash-----------", fileHash)
+    console.log("hash-----------", fileHash);
 
-    const isOnChain = await contract.isVerified(fileHash)
-    console.log("isOnChain-----------", isOnChain)
+    // Check if already on blockchain
+    const isOnChain = await contract.isVerified(fileHash);
+    console.log("isOnChain-----------", isOnChain);
 
-    // const existing = await Document.findOne({ hash: fileHash });
     if (isOnChain) {
       return res.status(200).json({
         message: "Document already verified on blockchain",
@@ -26,9 +32,12 @@ const uploadDocument = async (req, res) => {
       });
     }
 
-    let validityDays = 0;
-    const tx = await contract.storeHash(fileHash, validityDays);
+    // Get validityDays from request body (default: 0 = lifetime)
+    const { validityDays = 0 } = req.body;
+    const days = parseInt(validityDays) || 0; // Ensure it's a number
 
+    // Store on blockchain
+    const tx = await contract.storeHash(fileHash, days);
     console.log(`🚀 Transaction submitted: ${tx.hash}`);
 
     const receipt = await tx.wait();
@@ -37,21 +46,21 @@ const uploadDocument = async (req, res) => {
       return res.status(500).json({ error: 'Transaction failed on blockchain' });
     }
 
-
     return res.status(200).json({
       message: "Document hash stored on blockchain",
       hash: fileHash,
       transactionHash: tx.hash,
+      validityDays: days,
     });
 
   } catch (err) {
     console.error("❌ Upload failed:", err);
 
-    if (err.code === 11000) {
-      return res.status(200).json({ message: "File already exists", hash });
-    } else {
-      return res.status(500).json({ error: "File upload failed" });
-    }
+    // Handle known errors or generic fallback
+    return res.status(500).json({
+      error: "File upload failed",
+      details: err.message
+    });
   }
 };
 
