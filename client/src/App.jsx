@@ -2,6 +2,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import UploadZone from './components/UploadZone';
 import IssuePage from './components/issuePage';
+import QRCodeVerifier from './components/QRCodeVerifier'
 
 function App() {
   return (
@@ -74,6 +75,8 @@ function App() {
 
             {/* === ISSUE PAGE (Clean form only) === */}
             <Route path="/issue" element={<IssuePage />} />
+            <Route path="/verify/:hash" element={<QRCodeVerifier />} />
+
           </Routes>
         </main>
       </div>
