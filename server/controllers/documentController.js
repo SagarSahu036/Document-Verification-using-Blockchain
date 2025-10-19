@@ -1,13 +1,13 @@
 const { generateHash } = require("../utils/hashGenerator");
 const Document = require("../models/documentModel");
 const { contract } = require("../blockchain/ethers");
+const sendEmail = require("../utils/sendEmail");
 
 const uploadDocument = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-
     const { originalname, mimetype, buffer } = req.file;
 
     // Optional: Validate file type
@@ -33,7 +33,7 @@ const uploadDocument = async (req, res) => {
     }
 
     // Get validityDays from request body (default: 0 = lifetime)
-    const { validityDays = 0 } = req.body;
+    const { validityDays, email } = req.body;
     const days = parseInt(validityDays) || 0; // Ensure it's a number
 
     // Store on blockchain
@@ -47,6 +47,14 @@ const uploadDocument = async (req, res) => {
         .status(500)
         .json({ error: "Transaction failed on blockchain" });
     }
+
+    // after successful blockchain storage
+
+    await sendEmail(
+      email,
+      fileHash,
+      `http://192.168.0.4:5173/verify/${fileHash}`
+    );
 
     return res.status(200).json({
       message: "Document hash stored on blockchain",
@@ -102,7 +110,7 @@ const verifyDocument = async (req, res) => {
 const QRcodeVerification = async (req, res) => {
   try {
     const fileHash = req.params.hash;
-    const result  = await contract.getVerificationData(fileHash);
+    const result = await contract.getVerificationData(fileHash);
     const formatted = {
       active: result[0], // Boolean
       issuedAt: Number(result[1]), // BigInt -> Number (timestamp)
