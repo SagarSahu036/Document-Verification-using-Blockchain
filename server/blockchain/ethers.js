@@ -1,5 +1,5 @@
 const { ethers } = require('ethers');
-require('dotenv').config();
+// require('dotenv').config();
 
 // Load from .env
 const RPC_URL = process.env.RPC_URL;

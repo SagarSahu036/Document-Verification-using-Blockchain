@@ -25,6 +25,8 @@ function IssuePage() {
     formData.append("validityDays", parseInt(validityDays) || 0); // 0 = lifetime
     formData.append("email", email);
 
+    const token = localStorage.getItem("token");
+
     setUploading(true);
     setResult(null);
 
@@ -34,7 +36,10 @@ function IssuePage() {
         "http://localhost:5000/api/documents/upload",
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
       console.log("res", response);
