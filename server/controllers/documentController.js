@@ -132,4 +132,113 @@ const QRcodeVerification = async (req, res) => {
   }
 };
 
-module.exports = { uploadDocument, verifyDocument, QRcodeVerification };
+const pauseContract = async (req, res) => {
+  try {
+    // 1. Validate input (same as your file validation)
+    const { action } = req.body;
+
+    if (!action || !["pause", "unpause"].includes(action)) {
+      return res
+        .status(400)
+        .json({ message: "Action must be 'pause' or 'unpause'" });
+    }
+
+    console.log(` Contract ${action} requested`);
+
+    // 2. Execute on blockchain (same as your storeHash)
+    const tx = await contract.setPaused(action === "pause");
+    console.log(` Transaction submitted: ${tx.hash}`);
+
+    // 3. Wait for confirmation (same as your tx.wait())
+    const receipt = await tx.wait();
+
+    if (receipt.status !== 1) {
+      return res
+        .status(500)
+        .json({ error: "Transaction failed on blockchain" });
+    }
+
+    // 4. Return success response (same structure as your upload)
+    return res.status(200).json({
+      message: `Contract ${
+        action === "pause" ? "paused" : "unpaused"
+      } successfully`,
+      transactionHash: tx.hash,
+      blockNumber: receipt.blockNumber,
+    });
+  } catch (err) {
+    console.error(" Pause operation failed:", err);
+
+    // 5. Error handling (same pattern as your upload)
+    return res.status(500).json({
+      error: "Contract operation failed",
+      details: err.message,
+    });
+  }
+};
+
+const getContractStatus = async (req, res) => {
+  try {
+    // Now you can check REAL blockchain state!
+    const isPaused = await contract.paused();
+
+    return res.status(200).json({
+      paused: isPaused,
+      contractAddress: process.env.CONTRACT_ADDRESS,
+      message: isPaused ? "Contract is paused" : "Contract is active",
+    });
+  } catch (err) {
+    console.error("Status check failed:", err);
+    return res.status(500).json({
+      error: "Failed to get contract status",
+      details: err.message,
+    });
+  }
+};
+
+const revokeDocument = async (req, res) => {
+  try {
+    const { documentHash } = req.body;
+
+    if (!documentHash) {
+      return res.status(400).json({ message: "Document hash is required" });
+    }
+
+    const isCurrentlyVerified = await contract.isVerified(documentHash);
+    if (!isCurrentlyVerified) {
+      return res.status(400).json({
+        message: "Document not found or already revoked",
+      });
+    }
+
+    const tx = await contract.revokeHash(documentHash);
+    const receipt = await tx.wait();
+
+    if (receipt.status !== 1) {
+      return res
+        .status(500)
+        .json({ error: "Transaction failed on blockchain" });
+    }
+
+    return res.status(200).json({
+      message: "Document revoked successfully",
+      documentHash: documentHash,
+      transactionHash: tx.hash,
+      blockNumber: receipt.blockNumber,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      error: "Document revoke failed",
+      details: err.message,
+    });
+  }
+};
+
+module.exports = {
+  uploadDocument,
+  verifyDocument,
+  QRcodeVerification,
+  pauseContract,
+  getContractStatus,
+  revokeDocument,
+};

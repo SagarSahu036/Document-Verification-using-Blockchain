@@ -5,6 +5,7 @@ import IssuePage from "./components/issuePage";
 import QRCodeVerifier from "./components/QRCodeVerifier";
 import AdminLogin from "./components/AdminLogin";
 import AdminDashboard from "./components/AdminDashboard";
+import AdminControlPanel from "./components/AdminControlPanel";
 
 function App() {
   return (
@@ -99,6 +100,10 @@ function App() {
             <Route path="/verify/:hash" element={<QRCodeVerifier />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route
+              path="/admin/control-panel"
+              element={<AdminControlPanel />}
+            />
           </Routes>
         </main>
       </div>
