@@ -13,7 +13,7 @@ const createAdmin = async () => {
     const hashedPassword = await bcrypt.hash("admin123", 10);
     const admin = new Admin({
       name: "Super Admin",
-      email: "sagarsah0457@gmail.com",
+      email: "sagarsahu0457@gmail.com",
       password: hashedPassword,
       role: "admin",
       organization: "ABC University",

@@ -12,7 +12,7 @@ const QRCodeVerifier = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`http://192.168.0.5:5000/api/documents/verify/${hash}`);
+        const res = await axios.get(`http://192.168.0.4:5000/api/documents/verify/${hash}`);
         setData(res.data);
       } catch (err) {
         setError("Verification failed. Please try again.");

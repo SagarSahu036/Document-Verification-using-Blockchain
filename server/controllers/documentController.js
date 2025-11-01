@@ -5,26 +5,24 @@ const sendEmail = require("../utils/sendEmail");
 
 const uploadDocument = async (req, res) => {
   try {
+    //  Validate file
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-    const { originalname, mimetype, buffer } = req.file;
 
-    // Optional: Validate file type
+    const { originalname, mimetype, buffer } = req.file;
     if (!mimetype.startsWith("application/pdf")) {
       return res.status(400).json({ message: "Only PDF files are allowed" });
     }
 
     console.log(`📄 Uploading: ${originalname}, Type: ${mimetype}`);
 
-    // Generate SHA-256 hash
+    //  Generate SHA-256 hash
     const fileHash = generateHash(buffer);
-    console.log("hash-----------", fileHash);
+    console.log("Generated Hash:", fileHash);
 
-    // Check if already on blockchain
+    //  Check if already on blockchain
     const isOnChain = await contract.isVerified(fileHash);
-    console.log("isOnChain-----------", isOnChain);
-
     if (isOnChain) {
       return res.status(200).json({
         message: "Document already verified on blockchain",
@@ -32,40 +30,65 @@ const uploadDocument = async (req, res) => {
       });
     }
 
-    // Get validityDays from request body (default: 0 = lifetime)
-    const { validityDays, email } = req.body;
-    const days = parseInt(validityDays) || 0; // Ensure it's a number
+    //  Get form data from request body
+    const {
+      documentType,
+      primaryName,
+      uploadDate,
+      validityDays,
+      expiryDate,
+      email,
+      mobile,
+    } = req.body;
 
-    // Store on blockchain
+    let days = parseInt(validityDays) || 0;
+
+    //  Store hash on blockchain
     const tx = await contract.storeHash(fileHash, days);
     console.log(`🚀 Transaction submitted: ${tx.hash}`);
 
     const receipt = await tx.wait();
-
     if (receipt.status !== 1) {
       return res
         .status(500)
         .json({ error: "Transaction failed on blockchain" });
     }
 
-    // after successful blockchain storage
-
-    await sendEmail(
+    //  Save document metadata in MongoDB
+    const newDoc = new Document({
+      documentType,
+      primaryName,
+      uploadDate,
+      validityDays: days,
+      expiryDate,
       email,
-      fileHash,
-      `http://192.168.0.4:5173/verify/${fileHash}`
-    );
+      mobile,
+      hash: fileHash,
+      transactionHash: tx.hash,
+      status: "Active",
+    });
 
+    await newDoc.save();
+    console.log("✅ Document metadata saved to MongoDB");
+
+    //  Send notification email (optional)
+    if (email) {
+      await sendEmail(
+        email,
+        fileHash,
+        `http://localhost:5173/verify/${fileHash}`
+      );
+    }
+
+    //  Return response
     return res.status(200).json({
-      message: "Document hash stored on blockchain",
+      message: "Document stored successfully (Blockchain + MongoDB)",
       hash: fileHash,
       transactionHash: tx.hash,
       validityDays: days,
     });
   } catch (err) {
     console.error("❌ Upload failed:", err);
-
-    // Handle known errors or generic fallback
     return res.status(500).json({
       error: "File upload failed",
       details: err.message,
@@ -219,6 +242,21 @@ const revokeDocument = async (req, res) => {
         .status(500)
         .json({ error: "Transaction failed on blockchain" });
     }
+    const updatedDoc = await Document.findOneAndUpdate(
+      { hash: documentHash }, 
+      {
+        status: "Revoked",
+        revokedAt: new Date(),
+        revokeTransactionHash: tx.hash, 
+      },
+      { new: true } 
+    );
+
+    if (!updatedDoc) {
+      console.warn(
+        `Document hash ${documentHash} revoked on chain but not found in DB`
+      );
+    }
 
     return res.status(200).json({
       message: "Document revoked successfully",
@@ -234,6 +272,59 @@ const revokeDocument = async (req, res) => {
   }
 };
 
+const getDocumentHistory = async (req, res) => {
+  try {
+    console.log("📋 Fetching document history...");
+
+    // Fetch all documents from MongoDB, sorted by newest first
+    const documents = await Document.find().sort({ createdAt: -1 }).lean(); // Convert to plain JavaScript objects for better performance
+
+    console.log(`✅ Found ${documents.length} documents`);
+
+    // Transform data to match frontend requirements
+    const formattedDocuments = documents.map((doc) => {
+      // Calculate expiry date if not stored or if validityDays changed
+      let expiryDate = "Lifetime";
+      if (doc.validityDays > 0 && doc.uploadDate) {
+        const upload = new Date(doc.uploadDate);
+        const expiry = new Date(upload);
+        expiry.setDate(expiry.getDate() + doc.validityDays);
+        expiryDate = expiry.toISOString().split("T")[0];
+      }
+
+      return {
+        id: doc._id,
+        documentType: doc.documentType || "Unknown",
+        documentTypeLabel: doc.documentType || "Unknown",
+        primaryName: doc.primaryName || "N/A",
+        uploadDate: doc.uploadDate || "N/A",
+        expiryDate: doc.expiryDate || expiryDate,
+        validityDays: doc.validityDays || 0,
+        hash: doc.hash,
+        transactionHash: doc.transactionHash,
+        status: doc.status || "Active", // Default to Active
+        email: doc.email || null,
+        mobile: doc.mobile || null,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: formattedDocuments.length,
+      documents: formattedDocuments,
+    });
+  } catch (err) {
+    console.error("❌ Failed to fetch document history:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch document history",
+      error: err.message,
+    });
+  }
+};
+
 module.exports = {
   uploadDocument,
   verifyDocument,
@@ -241,4 +332,5 @@ module.exports = {
   pauseContract,
   getContractStatus,
   revokeDocument,
+  getDocumentHistory,
 };

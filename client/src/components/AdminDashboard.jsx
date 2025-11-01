@@ -20,8 +20,13 @@ export default function AdminDashboard() {
   const handleNavigation = (page) => {
     if (page === "document-actions") {
       navigate("/admin/control-panel");
+    } else if (page === "document-management") {
+      navigate("/admin/document-history");
+    } else if (page === "issue-document") {
+      // 👈 NEW
+      navigate("/admin/issue-document");
     } else {
-      alert(`Navigating to ${page} page...`); // Keep others as alerts for now
+      alert(`Navigating to ${page} page...`);
     }
   };
 

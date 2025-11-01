@@ -34,7 +34,7 @@ const loginAdmin = async (req, res) => {
       organization: admin.organization,
     });
   } catch (error) {
-    console.error(err);
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };

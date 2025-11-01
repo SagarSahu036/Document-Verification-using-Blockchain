@@ -8,8 +8,10 @@ import {
   Hash,
   CheckCircle,
   Activity,
+  ArrowLeft,
 } from "lucide-react";
 import axios from "axios";
+import { useNavigate } from 'react-router-dom';
 
 export default function AdminControlPanel() {
   const [contractPaused, setContractPaused] = useState(false);
@@ -18,6 +20,8 @@ export default function AdminControlPanel() {
   const [showRevokeModal, setShowRevokeModal] = useState(false);
   const [actionSuccess, setActionSuccess] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     checkContractStatus();
@@ -136,6 +140,12 @@ export default function AdminControlPanel() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 p-6 flex items-center justify-center">
       <div className="w-full max-w-5xl">
+        <button onClick={() => navigate('/admin/dashboard')} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold mb-4 transition-colors group">
+          <div className="w-8 h-8 rounded-lg bg-white shadow-md flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </div>
+          <span>Back to Dashboard</span>
+        </button>
         {/* Success Toast */}
         {actionSuccess && (
           <div className="fixed top-6 right-6 bg-white rounded-2xl shadow-2xl p-5 border-l-4 border-green-500 animate-slide-in z-50">

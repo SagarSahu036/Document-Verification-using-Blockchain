@@ -8,6 +8,7 @@ const {
   pauseContract,
   getContractStatus,
   revokeDocument,
+  getDocumentHistory,
 } = require("../controllers/documentController");
 
 const multer = require("multer");
@@ -21,5 +22,6 @@ router.get("/verify/:hash", QRcodeVerification);
 router.post("/pause-contract", protect, pauseContract);
 router.get("/contract-status", protect, getContractStatus);
 router.post("/revoke", protect, revokeDocument);
+router.get("/history", protect, getDocumentHistory);
 
 module.exports = router;
