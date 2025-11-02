@@ -17,7 +17,7 @@ import {
 import axios from "axios";
 import { QRCodeSVG } from "qrcode.react";
 import { saveAs } from "file-saver";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
 function IssuePage() {
   // Keep all your original state
@@ -219,12 +219,15 @@ function IssuePage() {
         </div>
       )}
       <div className="w-full max-w-4xl mx-auto">
-         <button onClick={() => navigate('/admin/dashboard')} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold mb-4 transition-colors group">
-        <div className="w-8 h-8 rounded-lg bg-white shadow-md flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </div>
-        <span>Back to Dashboard</span>
-      </button>
+        <button
+          onClick={() => navigate("/admin/dashboard")}
+          className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold mb-4 transition-colors group"
+        >
+          <div className="w-8 h-8 rounded-lg bg-white shadow-md flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </div>
+          <span>Back to Dashboard</span>
+        </button>
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl mb-4 shadow-lg">

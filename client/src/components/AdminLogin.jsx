@@ -2,7 +2,15 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Lock, Mail, Eye, EyeOff, Shield, AlertCircle } from "lucide-react";
+import {
+  Lock,
+  Mail,
+  Eye,
+  EyeOff,
+  Shield,
+  AlertCircle,
+  ArrowLeft,
+} from "lucide-react";
 
 function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -20,12 +28,11 @@ function AdminLogin() {
         password,
       });
 
-      // Save token and name
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("adminName", res.data.name);
 
-      setMessage("✅ Login successful!");
-      setTimeout(() => navigate("/admin/dashboard"), 1000);
+      // ✅ Immediate redirect with replace
+      navigate("/admin/dashboard", { replace: true });
     } catch (error) {
       console.error("Login error:", error);
       setMessage("❌ Invalid email or password");
@@ -44,6 +51,15 @@ function AdminLogin() {
       </div>
 
       <div className="w-full max-w-md relative z-10">
+        {/* Back to Home Button */}
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center text-gray-400 hover:text-white transition-colors mb-6 group"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
+          <span>Back to Home</span>
+        </button>
+
         {/* Logo/Header Section */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl mb-4 shadow-2xl">

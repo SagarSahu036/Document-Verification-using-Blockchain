@@ -12,16 +12,21 @@ import {
   Upload,
   Verified,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const handleAdminLogin = () => {
-    // Navigate to admin login
-    console.log("Navigate to admin login");
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/admin/dashboard");
+    } else {
+      navigate("/admin/login");
+    }
   };
 
   const handleVerifyDocument = () => {
-    // Navigate to verify page
-    console.log("Navigate to verify document page");
+    navigate("/verify");
   };
 
   return (
@@ -34,7 +39,7 @@ export default function LandingPage() {
           <div className="absolute w-96 h-96 bg-blue-500/20 rounded-full blur-3xl -bottom-48 -right-48 animate-pulse delay-700"></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-6 py-20">
+        <div className="relative max-w-7xl mx-auto px-6 py-18">
           {/* Navigation */}
           <nav className="flex items-center justify-between mb-20">
             <div className="flex items-center gap-3">

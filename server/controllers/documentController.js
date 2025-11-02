@@ -134,7 +134,7 @@ const QRcodeVerification = async (req, res) => {
   try {
     const fileHash = req.params.hash;
     const result = await contract.getVerificationData(fileHash);
-    const formatted = {
+    const blockchainData = {
       active: result[0], // Boolean
       issuedAt: Number(result[1]), // BigInt -> Number (timestamp)
       expiresAt: Number(result[2]), // BigInt -> Number (timestamp)
@@ -143,9 +143,15 @@ const QRcodeVerification = async (req, res) => {
       issuerName: result[5], // Human-readable issuer name
       hash: fileHash, // Original hash
     };
+    const documentData = await Document.findOne({ hash: fileHash });
+
+    return res.status(200).json({
+      blockchain: blockchainData,
+      document: documentData,
+    });
 
     // Return structured JSON
-    return res.status(200).json(formatted);
+    
   } catch (error) {
     console.error(error);
     return res.status(500).json({
@@ -243,13 +249,13 @@ const revokeDocument = async (req, res) => {
         .json({ error: "Transaction failed on blockchain" });
     }
     const updatedDoc = await Document.findOneAndUpdate(
-      { hash: documentHash }, 
+      { hash: documentHash },
       {
         status: "Revoked",
         revokedAt: new Date(),
-        revokeTransactionHash: tx.hash, 
+        revokeTransactionHash: tx.hash,
       },
-      { new: true } 
+      { new: true }
     );
 
     if (!updatedDoc) {
@@ -276,14 +282,42 @@ const getDocumentHistory = async (req, res) => {
   try {
     console.log("📋 Fetching document history...");
 
-    // Fetch all documents from MongoDB, sorted by newest first
-    const documents = await Document.find().sort({ createdAt: -1 }).lean(); // Convert to plain JavaScript objects for better performance
-
+    // Fetch all documents from MongoDB
+    const documents = await Document.find().sort({ createdAt: -1 }).lean();
     console.log(`✅ Found ${documents.length} documents`);
 
-    // Transform data to match frontend requirements
-    const formattedDocuments = documents.map((doc) => {
-      // Calculate expiry date if not stored or if validityDays changed
+    // Process documents sequentially with delays
+    const formattedDocuments = [];
+    
+    for (let i = 0; i < documents.length; i++) {
+      const doc = documents[i];
+      
+      // Add delay to avoid overwhelming the blockchain node
+      if (i > 0) await new Promise(resolve => setTimeout(resolve, 100));
+      
+      let blockchainStatus = "Unknown";
+      
+      try {
+        // Get REAL status from blockchain
+        const result = await contract.getVerificationData(doc.hash);
+        const isActive = result[0]; // Boolean from blockchain
+        const revokedAt = Number(result[3]);
+        
+        // Use the REAL blockchain status
+        if (!isActive) {
+          blockchainStatus = "Inactive";
+        } else if (revokedAt > 0) {
+          blockchainStatus = "Revoked";
+        } else {
+          blockchainStatus = "Active";
+        }
+        
+      } catch (blockchainError) {
+        console.error(`❌ Blockchain error for ${doc.hash}:`, blockchainError.message);
+        blockchainStatus = "Blockchain Error";
+      }
+
+      // Calculate expiry date (for display only)
       let expiryDate = "Lifetime";
       if (doc.validityDays > 0 && doc.uploadDate) {
         const upload = new Date(doc.uploadDate);
@@ -292,29 +326,29 @@ const getDocumentHistory = async (req, res) => {
         expiryDate = expiry.toISOString().split("T")[0];
       }
 
-      return {
+      formattedDocuments.push({
         id: doc._id,
         documentType: doc.documentType || "Unknown",
-        documentTypeLabel: doc.documentType || "Unknown",
         primaryName: doc.primaryName || "N/A",
         uploadDate: doc.uploadDate || "N/A",
         expiryDate: doc.expiryDate || expiryDate,
         validityDays: doc.validityDays || 0,
         hash: doc.hash,
         transactionHash: doc.transactionHash,
-        status: doc.status || "Active", // Default to Active
+        status: blockchainStatus, // REAL blockchain status
         email: doc.email || null,
         mobile: doc.mobile || null,
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
-      };
-    });
+      });
+    }
 
     return res.status(200).json({
       success: true,
       count: formattedDocuments.length,
       documents: formattedDocuments,
     });
+    
   } catch (err) {
     console.error("❌ Failed to fetch document history:", err);
     return res.status(500).json({

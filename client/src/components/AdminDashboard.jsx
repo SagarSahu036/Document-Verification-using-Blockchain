@@ -10,7 +10,9 @@ import {
   Activity,
   Clock,
   CheckCircle,
+  Home,
 } from "lucide-react";
+
 import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
@@ -33,8 +35,11 @@ export default function AdminDashboard() {
   const handleLogout = () => {
     const confirmLogout = window.confirm("Are you sure you want to logout?");
     if (confirmLogout) {
-      alert("Logging out...");
-      // Add logout logic here
+      localStorage.removeItem("adminName");
+      localStorage.removeItem("token");
+
+      // Redirect to login page
+      navigate("/");
     }
   };
 
@@ -108,14 +113,26 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Logout Button */}
-          <button
-            onClick={handleLogout}
-            className="flex items-center px-4 md:px-6 py-3 bg-slate-800/50 hover:bg-red-500/20 border border-slate-700/50 hover:border-red-500/50 rounded-xl transition-all duration-300"
-          >
-            <LogOut className="w-5 h-5 mr-2" />
-            <span className="hidden md:inline">Logout</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            {/* Home Button - Add this */}
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center px-4 md:px-6 py-3 bg-slate-800/50 hover:bg-blue-500/20 border border-slate-700/50 hover:border-blue-500/50 rounded-xl transition-all duration-300"
+              title="Go to Home Page"
+            >
+              <Home className="w-5 h-5 mr-2" />
+              <span className="hidden md:inline">Home</span>
+            </button>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-4 md:px-6 py-3 bg-slate-800/50 hover:bg-red-500/20 border border-slate-700/50 hover:border-red-500/50 rounded-xl transition-all duration-300"
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              <span className="hidden md:inline">Logout</span>
+            </button>
+          </div>
         </div>
 
         {/* Statistics Cards */}
