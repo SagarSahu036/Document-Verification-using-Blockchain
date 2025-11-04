@@ -9,6 +9,7 @@ const {
   getContractStatus,
   revokeDocument,
   getDocumentHistory,
+  getDashboardStats,
 } = require("../controllers/documentController");
 
 const multer = require("multer");
@@ -23,5 +24,6 @@ router.post("/pause-contract", protect, pauseContract);
 router.get("/contract-status", protect, getContractStatus);
 router.post("/revoke", protect, revokeDocument);
 router.get("/history", protect, getDocumentHistory);
+router.get("/dashboard-stats", protect, getDashboardStats);
 
 module.exports = router;

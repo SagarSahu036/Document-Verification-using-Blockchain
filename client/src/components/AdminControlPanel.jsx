@@ -11,7 +11,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import axios from "axios";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
 export default function AdminControlPanel() {
   const [contractPaused, setContractPaused] = useState(false);
@@ -115,14 +115,18 @@ export default function AdminControlPanel() {
         }
       );
 
-      // Success - close modal and show success
+      // ✅ Success: Close modal and show success message
       setShowRevokeModal(false);
       setRevokeHash("");
       setActionSuccess("Document revoked successfully");
     } catch (error) {
-      setActionSuccess(
-        `Error: ${error.response?.data?.error || error.message}`
-      );
+      if (error.response && error.response.data?.message) {
+        setActionSuccess(`Error: ${error.response.data.message}`);
+      } else if (error.response && error.response.data?.error) {
+        setActionSuccess(`Error: ${error.response.data.error}`);
+      } else {
+        setActionSuccess(`Error: ${error.message}`);
+      }
     } finally {
       setIsLoading(false);
       setTimeout(() => setActionSuccess(null), 3000);
@@ -140,7 +144,10 @@ export default function AdminControlPanel() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 p-6 flex items-center justify-center">
       <div className="w-full max-w-5xl">
-        <button onClick={() => navigate('/admin/dashboard')} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold mb-4 transition-colors group">
+        <button
+          onClick={() => navigate("/admin/dashboard")}
+          className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold mb-4 transition-colors group"
+        >
           <div className="w-8 h-8 rounded-lg bg-white shadow-md flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </div>

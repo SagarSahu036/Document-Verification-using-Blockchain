@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
 import {
   Upload,
   FileText,
@@ -11,13 +13,68 @@ import {
   Clock,
   CheckCircle,
   Home,
+  XCircle,
+  Power,
 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
   const [selectedCard, setSelectedCard] = useState(null);
+  const [stats, setStats] = useState({
+    totalDocuments: 0,
+    issuedToday: 0,
+    revokedDocuments: 0,
+    activeDocuments: 0,
+    inactiveDocuments: 0,
+    totalUsers: 0,
+  });
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Fetch real data from backend
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Get token from localStorage
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+          console.error("❌ No authentication token found");
+          navigate("/admin/login");
+          return;
+        }
+
+        const res = await axios.get(
+          "http://localhost:5000/api/documents/dashboard-stats",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (res.data.success) {
+          setStats(res.data.data);
+        }
+      } catch (err) {
+        console.error("❌ Failed to load dashboard stats:", err.message);
+
+        // If 401 (unauthorized), redirect to login
+        if (err.response?.status === 401) {
+          console.error("❌ Unauthorized - Please login again");
+          localStorage.removeItem("token");
+          localStorage.removeItem("adminName");
+          navigate("/admin/login");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [navigate]);
 
   const handleNavigation = (page) => {
     if (page === "document-actions") {
@@ -25,7 +82,6 @@ export default function AdminDashboard() {
     } else if (page === "document-management") {
       navigate("/admin/document-history");
     } else if (page === "issue-document") {
-      // 👈 NEW
       navigate("/admin/issue-document");
     } else {
       alert(`Navigating to ${page} page...`);
@@ -37,19 +93,9 @@ export default function AdminDashboard() {
     if (confirmLogout) {
       localStorage.removeItem("adminName");
       localStorage.removeItem("token");
-
-      // Redirect to login page
       navigate("/");
     }
   };
-
-  // Mock statistics
-  const stats = [
-    { label: "Total Documents", value: "1,234", icon: FileText, color: "blue" },
-    { label: "Issued Today", value: "47", icon: CheckCircle, color: "green" },
-    { label: "Pending Actions", value: "12", icon: Clock, color: "amber" },
-    { label: "Active Users", value: "89", icon: Users, color: "purple" },
-  ];
 
   const menuItems = [
     {
@@ -85,6 +131,69 @@ export default function AdminDashboard() {
     },
   ];
 
+  const statisticsCards = [
+    {
+      label: "Total Documents",
+      value: stats.totalDocuments,
+      icon: FileText,
+      color: "blue",
+      bgGradient: "from-blue-500/20 to-cyan-500/20",
+      iconBg: "bg-blue-500/20",
+      iconColor: "text-blue-400",
+      textColor: "text-blue-300",
+    },
+    {
+      label: "Issued Today",
+      value: stats.issuedToday,
+      icon: CheckCircle,
+      color: "green",
+      bgGradient: "from-green-500/20 to-emerald-500/20",
+      iconBg: "bg-green-500/20",
+      iconColor: "text-green-400",
+      textColor: "text-green-300",
+    },
+    {
+      label: "Active Documents",
+      value: stats.activeDocuments,
+      icon: Power,
+      color: "emerald",
+      bgGradient: "from-emerald-500/20 to-teal-500/20",
+      iconBg: "bg-emerald-500/20",
+      iconColor: "text-emerald-400",
+      textColor: "text-emerald-300",
+    },
+    {
+      label: "Revoked Documents",
+      value: stats.revokedDocuments,
+      icon: XCircle,
+      color: "amber",
+      bgGradient: "from-amber-500/20 to-orange-500/20",
+      iconBg: "bg-amber-500/20",
+      iconColor: "text-amber-400",
+      textColor: "text-amber-300",
+    },
+    {
+      label: "Inactive Documents",
+      value: stats.inactiveDocuments,
+      icon: Clock,
+      color: "gray",
+      bgGradient: "from-gray-500/20 to-slate-500/20",
+      iconBg: "bg-gray-500/20",
+      iconColor: "text-gray-400",
+      textColor: "text-gray-300",
+    },
+    {
+      label: "Total Users",
+      value: stats.totalUsers,
+      icon: Users,
+      color: "purple",
+      bgGradient: "from-purple-500/20 to-pink-500/20",
+      iconBg: "bg-purple-500/20",
+      iconColor: "text-purple-400",
+      textColor: "text-purple-300",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-4 md:p-8">
       {/* Animated Background */}
@@ -114,7 +223,7 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center space-x-3">
-            {/* Home Button - Add this */}
+            {/* Home Button */}
             <button
               onClick={() => navigate("/")}
               className="flex items-center px-4 md:px-6 py-3 bg-slate-800/50 hover:bg-blue-500/20 border border-slate-700/50 hover:border-blue-500/50 rounded-xl transition-all duration-300"
@@ -136,44 +245,41 @@ export default function AdminDashboard() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat, index) => (
-            <div
-              key={index}
-              className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-slate-700/50 hover:border-slate-600/50 transition-all duration-300"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    stat.color === "blue"
-                      ? "bg-blue-500/20"
-                      : stat.color === "green"
-                      ? "bg-green-500/20"
-                      : stat.color === "amber"
-                      ? "bg-amber-500/20"
-                      : "bg-purple-500/20"
-                  }`}
-                >
-                  <stat.icon
-                    className={`w-5 h-5 ${
-                      stat.color === "blue"
-                        ? "text-blue-400"
-                        : stat.color === "green"
-                        ? "text-green-400"
-                        : stat.color === "amber"
-                        ? "text-amber-400"
-                        : "text-purple-400"
-                    }`}
-                  />
-                </div>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            {[1, 2, 3, 4, 5, 6].map((index) => (
+              <div
+                key={index}
+                className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-slate-700/50 animate-pulse"
+              >
+                <div className="w-10 h-10 bg-slate-700 rounded-xl mb-4"></div>
+                <div className="h-8 bg-slate-700 rounded mb-2"></div>
+                <div className="h-4 bg-slate-700 rounded"></div>
               </div>
-              <p className="text-2xl md:text-3xl font-bold mb-1">
-                {stat.value}
-              </p>
-              <p className="text-xs md:text-sm text-gray-400">{stat.label}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            {statisticsCards.map((stat, index) => (
+              <div
+                key={index}
+                className={`bg-gradient-to-br ${stat.bgGradient} backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-slate-700/50 hover:border-slate-600/50 transition-all duration-300 hover:scale-105`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.iconBg}`}
+                  >
+                    <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+                  </div>
+                </div>
+                <p className="text-2xl md:text-3xl font-bold mb-1">
+                  {stat.value}
+                </p>
+                <p className="text-xs md:text-sm text-gray-400">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Main Menu Cards */}
         <div className="mb-8">
@@ -223,61 +329,75 @@ export default function AdminDashboard() {
         </div>
 
         {/* Recent Activity Section */}
-        <div className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/50">
+        <div className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-slate-700/50 mb-8">
           <h2 className="text-2xl font-semibold mb-6 flex items-center">
             <Clock className="w-6 h-6 mr-3 text-blue-400" />
-            Recent Activity
+            System Overview
           </h2>
 
-          <div className="space-y-4">
-            {[
-              {
-                action: "Document issued",
-                file: "certificate_2024.pdf",
-                time: "5 minutes ago",
-                status: "success",
-              },
-              {
-                action: "Document verified",
-                file: "diploma_john_doe.pdf",
-                time: "15 minutes ago",
-                status: "info",
-              },
-              {
-                action: "Document revoked",
-                file: "old_license.pdf",
-                time: "1 hour ago",
-                status: "warning",
-              },
-              {
-                action: "New user registered",
-                file: "user_id_45",
-                time: "2 hours ago",
-                status: "info",
-              },
-            ].map((activity, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl hover:bg-slate-900/70 transition-all duration-300"
-              >
-                <div className="flex items-center">
-                  <div
-                    className={`w-2 h-2 rounded-full mr-4 ${
-                      activity.status === "success"
-                        ? "bg-green-400"
-                        : activity.status === "warning"
-                        ? "bg-amber-400"
-                        : "bg-blue-400"
-                    }`}
-                  ></div>
-                  <div>
-                    <p className="font-semibold">{activity.action}</p>
-                    <p className="text-sm text-gray-400">{activity.file}</p>
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Active vs Inactive Chart */}
+            <div className="bg-slate-900/50 rounded-xl p-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-300">
+                Document Status
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                    <span className="text-gray-400">Active Documents</span>
                   </div>
+                  <span className="text-white font-semibold">
+                    {stats.activeDocuments}
+                  </span>
                 </div>
-                <p className="text-sm text-gray-500">{activity.time}</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-amber-500 rounded-full mr-3"></div>
+                    <span className="text-gray-400">Revoked Documents</span>
+                  </div>
+                  <span className="text-white font-semibold">
+                    {stats.revokedDocuments}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-gray-500 rounded-full mr-3"></div>
+                    <span className="text-gray-400">Inactive Documents</span>
+                  </div>
+                  <span className="text-white font-semibold">
+                    {stats.inactiveDocuments}
+                  </span>
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* Quick Stats */}
+            <div className="bg-slate-900/50 rounded-xl p-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-300">
+                Today's Activity
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                  <div className="flex items-center">
+                    <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
+                    <span className="text-gray-400">Documents Issued</span>
+                  </div>
+                  <span className="text-white font-semibold text-xl">
+                    {stats.issuedToday}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                  <div className="flex items-center">
+                    <Users className="w-5 h-5 text-purple-400 mr-3" />
+                    <span className="text-gray-400">Total Users</span>
+                  </div>
+                  <span className="text-white font-semibold text-xl">
+                    {stats.totalUsers}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

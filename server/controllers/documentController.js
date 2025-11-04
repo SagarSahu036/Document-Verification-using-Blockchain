@@ -151,7 +151,6 @@ const QRcodeVerification = async (req, res) => {
     });
 
     // Return structured JSON
-    
   } catch (error) {
     console.error(error);
     return res.status(500).json({
@@ -235,7 +234,7 @@ const revokeDocument = async (req, res) => {
 
     const isCurrentlyVerified = await contract.isVerified(documentHash);
     if (!isCurrentlyVerified) {
-      return res.status(400).json({
+      return res.status(409).json({
         message: "Document not found or already revoked",
       });
     }
@@ -288,32 +287,34 @@ const getDocumentHistory = async (req, res) => {
 
     // Process documents sequentially with delays
     const formattedDocuments = [];
-    
+
     for (let i = 0; i < documents.length; i++) {
       const doc = documents[i];
-      
+
       // Add delay to avoid overwhelming the blockchain node
-      if (i > 0) await new Promise(resolve => setTimeout(resolve, 100));
-      
+      if (i > 0) await new Promise((resolve) => setTimeout(resolve, 100));
+
       let blockchainStatus = "Unknown";
-      
+
       try {
         // Get REAL status from blockchain
         const result = await contract.getVerificationData(doc.hash);
         const isActive = result[0]; // Boolean from blockchain
         const revokedAt = Number(result[3]);
-        
+
         // Use the REAL blockchain status
-        if (!isActive) {
-          blockchainStatus = "Inactive";
-        } else if (revokedAt > 0) {
+        if (revokedAt > 0) {
           blockchainStatus = "Revoked";
+        } else if (!isActive) {
+          blockchainStatus = "Inactive";
         } else {
           blockchainStatus = "Active";
         }
-        
       } catch (blockchainError) {
-        console.error(`❌ Blockchain error for ${doc.hash}:`, blockchainError.message);
+        console.error(
+          `❌ Blockchain error for ${doc.hash}:`,
+          blockchainError.message
+        );
         blockchainStatus = "Blockchain Error";
       }
 
@@ -348,12 +349,64 @@ const getDocumentHistory = async (req, res) => {
       count: formattedDocuments.length,
       documents: formattedDocuments,
     });
-    
   } catch (err) {
     console.error("❌ Failed to fetch document history:", err);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch document history",
+      error: err.message,
+    });
+  }
+};
+
+const getDashboardStats = async (req, res) => {
+  try {
+    // Get all documents from DB
+    const documents = await Document.find().lean();
+
+    const totalDocuments = documents.length;
+
+    // Documents created today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const issuedToday = documents.filter(
+      (doc) => new Date(doc.createdAt) >= today
+    ).length;
+
+    // Status counts (from MongoDB, already saved or fetched)
+    let activeCount = 0;
+    let revokedCount = 0;
+    let inactiveCount = 0;
+
+    for (let doc of documents) {
+      const result = await contract.getVerificationData(doc.hash);
+      const isActive = result[0];
+      const revokedAt = Number(result[3]);
+
+      if (revokedAt > 0) revokedCount++;
+      else if (!isActive) inactiveCount++;
+      else activeCount++;
+    }
+
+    // You can skip user count if you do not have users collection
+    const totalUsers = 0;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalDocuments,
+        issuedToday,
+        revokedDocuments: revokedCount,
+        activeDocuments: activeCount,
+        inactiveDocuments: inactiveCount,
+        totalUsers,
+      },
+    });
+  } catch (err) {
+    console.error("❌ Error fetching dashboard stats:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch dashboard stats",
       error: err.message,
     });
   }
@@ -367,4 +420,5 @@ module.exports = {
   getContractStatus,
   revokeDocument,
   getDocumentHistory,
+  getDashboardStats,
 };
